@@ -59,7 +59,7 @@ $space: 20px;
 body {
   overflow-x: hidden;
   width: 100vw;
-  background-color: grey;
+  background-color: black;
   color: white;
   &.media-open { overflow: hidden; }
 }
@@ -119,6 +119,11 @@ a {
 #p5-canvas-container {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0; 
+  line-height: 0;
+  // top: -50px; left: -50px; right: -50px; bottom: -50px; 
+  &.blurred canvas {
+    filter: blur(25px);
+  }
 }
 
 // -----------------------------------------------------------------------------

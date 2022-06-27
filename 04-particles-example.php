@@ -14,6 +14,6 @@
 </head>
 <body>
   <div id="p5-canvas-container">
-  <script type="text/javascript" src="./assets/js/index3.js"></script>
+  <script type="text/javascript" src="./assets/js/index4.js"></script>
 </body>
 </html>
