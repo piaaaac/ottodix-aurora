@@ -1,3 +1,12 @@
+/*
+Class BG
+Interpolate colors
+Effects
+Class noise muccato to overlay and create 
+  imperfection in the light 
+  progression (eg Left to Right)
+*/
+
 
 // --------------------------------------------------------------
 // Vars
@@ -7,9 +16,11 @@
 let auroraSystem;
 let canvas;
 let colors;
+let bg;
 let params = {
   "click left/right": "add/remove lines",
   "linesNum": 2,
+  "effects": [],
 };
 
 // --------------------------------------------------------------
@@ -31,6 +42,7 @@ function setup() {
   for (var i = 0; i < params.linesNum; i++) {
     auroraSystem.addRandomLine();
   }
+  bg = new Background();
   background(0, 12, 0);
 }
 
@@ -39,6 +51,7 @@ function draw() {
   // fill(0, 0, 0, 255);
   noStroke();
   rect(0,0, width,height);
+  bg.run();
   auroraSystem.run();
 
   showParams();
@@ -47,6 +60,49 @@ function draw() {
 // --------------------------------------------------------------
 // Class Background
 // --------------------------------------------------------------
+
+function Background () {
+  this.dots = [];
+  this.size = 500;
+  this.pg = createGraphics(this.size, this.size);
+
+  this.init = function () {
+    for (var i = 0; i < 3; i++) {
+      var d = new Dot(size * 0.2, size * 0.1 * i, size * 0.4);
+      this.dots.push(d);
+    }
+  }
+
+  this.run = function () {
+    this.dots.forEach(dot => {
+      dot.update();
+      dot.display(this.pg);
+    });
+    image(this.pg);
+  }
+}
+
+function Dot (x, y, r) {
+  this.pos = createVector(x, y);
+  this.r = r; 
+  this.colors = shuffle(colors);
+  this.colors.push(color(this.colors[0]));
+  this.life = random();
+  this.lifeIncrement = 0.1;
+
+  this.update = function () {
+    this.life += this.lifeIncrement;
+    if (this.life > 1) {
+      this.life -= 1;
+    }
+  }
+
+  this.display = function (pg) {
+    pg.fill(interpolateNColors(colors, this.life));
+    pg.noStroke();
+    pg.circle(this.pos.x, this.pos.y, this.r);
+  }
+}
 
 // --------------------------------------------------------------
 // Class AuroraLine
@@ -191,16 +247,42 @@ function AuroraSystem () {
 
 
 // --------------------------------------------------------------
-// Functions
+// Functions p5
 // --------------------------------------------------------------
 
-function mousePressed() {
+function mousePressed () {
   if (mouseX < width/2) {
     auroraSystem.addRandomLine();
   } else {
     auroraSystem.killOldestLine();
   }
 }
+
+function keyPressed () {
+  console.log(keyCode);
+  if (keyCode === LEFT_ARROW) { }
+  if (keyCode === RIGHT_ARROW) { }
+  if (keyCode === UP_ARROW) { }
+  if (keyCode === DOWN_ARROW) { }
+}
+
+/**
+ * @param colorsArray []
+ * @param amt - normalized advancement 0-1
+ * */
+function interpolateNColors (colorsArray, amt) {
+  const colorNum = colorsArray.length;
+  const stepSize = 1 / (colorNum - 1);
+  const step = floor(amt/stepSize);
+  const posInStep = amt % stepSize;
+  const newNorm = map(posInStep, 0,stepSize, 0,1);
+  return lerpColor(colorsArray[step], colorsArray[step+1], newNorm);
+}
+
+
+// --------------------------------------------------------------
+// Functions
+// --------------------------------------------------------------
 
 /**
  * @param vars [] array of objects w/ keys {name, value}
@@ -253,3 +335,81 @@ function getRetinaPixel (x, y, pixels) {
 // $(cont).click(function () {
 //   $(this).toggleClass("blurred");
 // });
+
+
+
+
+
+
+
+
+
+
+
+
+// int interpolateColors(int c1, int c2, float percent) {
+//   int r = (int) (red(c1)*(1-percent) + red(c2)*percent);
+//   int g = (int) (green(c1)*(1-percent) + green(c2)*percent);
+//   int b = (int) (blue(c1)*(1-percent) + blue(c2)*percent);
+//   int c = color(r, g, b);
+//   return c;
+// }
+
+
+// int interpolateNColors(int[] colorsArray, float percent) {
+//   int resultColor;
+
+//   int colorNum = colorsArray.length;
+//   float stepSize = 1.0 / (colorNum - 1);
+//   int step = floor(percent/stepSize);
+//   float posInStep = percent % stepSize;
+//   float newPercent = map(posInStep, 0,stepSize, 0,1);
+  
+//   resultColor = interpolateColors(colorsArray[step], colorsArray[step+1], newPercent);
+//   return resultColor;
+// }
+
+
+// void setup() {
+//   size(500, 500);
+//   background(255);
+//   noStroke();
+//   noLoop();
+//   rectMode(CORNERS);  
+// }
+
+
+
+// void draw() {
+// /*
+//   int c1 = color(0, 167, 255);
+//   int c2 = color(200, 0, 0);
+//   int c3 = color(72, 255, 0);
+//   int c4 = color(0, 0, 255);
+//   int c5 = color(0, 255, 0);
+//   int c6 = color(255, 0, 0);
+// */
+//   int c1 = color(255);
+//   int c2 = color(0, 167, 255);
+//   int c3 = color(200, 222, 0);
+//   int c4 = color(200, 0, 0);
+//   int c5 = color(255);
+//   int[] colors = { c1,c2,c3,c4,c5 };
+//   int n = colors.length;
+  
+//   float rectLength = width/n;
+//   for(int i=0; i<n; i++){
+//     fill(colors[i]);
+//     rect(rectLength*i, 0, rectLength*(i+1), height/2);
+//   }
+
+//   for (int i=0; i<width; i++) {
+//     float advancement = map(i, 0,width, 0,1);
+
+//     //advancement = pow( advancement, 8 );
+//     int c = interpolateNColors(colors, advancement);
+
+//     fill(c);
+//     rect(i, height/2, i+1, height);
+//   }
+// }
