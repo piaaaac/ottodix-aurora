@@ -31,13 +31,14 @@ let auroraSystem;
 let canvas;
 let palette;
 // let bg;
+let pgEffects;
 let params = {
   "click left/right": "add/remove lines",
   "linesNum": 2,
   "effects": [],
 };
 
-let memory;
+let lastImage;
 
 // --------------------------------------------------------------
 // P5 loop structure
@@ -62,36 +63,53 @@ function setup() {
     auroraSystem.addRandomLine();
   }
 
-  // bg = new Background();
-  // bg.init();
-  // background(0, 12, 0);
+  pgEffects = createGraphics(width, height);
 }
 
-
-
 function draw() {
-
-  // fill(0, 12, 0, 10);
-  // fill(red(palette.green), green(palette.green), blue(palette.green), 1);
+  if (lastImage) {
+    image(lastImage, -2, -2, width+4, height+4);
+  }
+  pgEffects.clear();
   var tint = getBgTint();
   var bgc = changeBrightness(tint, 70);
-  // console.log("brght", brightness(bgc))
-  fill(red(bgc), green(bgc), blue(bgc), 10);
-
+  fill(red(bgc), green(bgc), blue(bgc), 3);
   noStroke();
   rect(0,0, width,height);
   auroraSystem.run();
-  // tint(0,0,0,20);
-  // bg.run();
-
-  // if (frameCount % 100 === 0) {
-  //   noStroke();
-  //   fill(255);
-  //   codeBg();
-  // }
-
-  showParams();
+  lastImage = get();
+  image(pgEffects, 0, 0);
+  if (lastImage) {
+    showParams();
+  }
 }
+
+
+// function draw() {
+//   pgEffects.clear();
+
+//   // fill(0, 12, 0, 10);
+//   // fill(red(palette.green), green(palette.green), blue(palette.green), 1);
+//   var tint = getBgTint();
+//   var bgc = changeBrightness(tint, 70);
+//   // console.log("brght", brightness(bgc))
+//   fill(red(bgc), green(bgc), blue(bgc), 3);
+
+//   noStroke();
+//   rect(0,0, width,height);
+//   auroraSystem.run();
+//   // tint(0,0,0,20);
+//   // bg.run();
+
+//   if (frameCount % 100 === 0) {
+//     noStroke();
+//     fill(255);
+//     codeBg();
+//   }
+
+//   image(pgEffects, 0, 0);
+//   showParams();
+// }
 
 function getBgTint() {
   // var bgColors = [palette.violet, palette.green, color(12,33,244), palette.violet];
@@ -318,9 +336,9 @@ function AuroraLine (y) {
 
     this.effects.forEach(eff => {
       if (eff.name === "brilla") {
-        fill(palette.acid);
-        fill(255);
-        noStroke();
+        pgEffects.fill(palette.acid);
+        pgEffects.fill(255);
+        pgEffects.noStroke();
         var effIntensity = (0.5 - abs(eff.life - 0.5)) * 2; // 0 > 1 > 0
         var prob = effIntensity * 0.7;
         for (x = width * xstart; x < width * xend; x++) {
@@ -332,9 +350,9 @@ function AuroraLine (y) {
               pos.x += (random() - 0.5) * eff.options.displace * pow(effIntensity, 28);
               pos.y += (random() - 0.5) * eff.options.displace * pow(effIntensity, 28);
             }
-            rect(pos.x, pos.y, 1,1);
+            pgEffects.rect(pos.x, pos.y, 1,1);
             if (random() < 0.01) {
-              rect(pos.x, pos.y, 1,5);
+              pgEffects.rect(pos.x, pos.y, 1,5);
             }
           }
         }
@@ -447,7 +465,7 @@ function mousePressed () {
 function keyPressed () {
   console.log(keyCode);
   if (keyCode === LEFT_ARROW) { 
-    random(auroraSystem.lines).addEffect("brilla", 2, {"displace": 25, "fadeLine": true}); 
+    random(auroraSystem.lines).addEffect("brilla", 1, {"displace": 25, "fadeLine": true}); 
   }
   if (keyCode === RIGHT_ARROW) { 
   }
