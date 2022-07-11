@@ -9,7 +9,7 @@ let canvas;
 let palette;
 let pgEffects;
 let lastImage;
-let raw, data;
+let raw, data, currentDataPoint, dataStats;
 let skeleton = false;
 let params = {
   "click left/right": "add/remove lines",
@@ -28,6 +28,8 @@ function preload () {
 
 function setup() {
   data = raw["juice"];
+  dataStats = getStats(data);
+  console.log(dataStats);
   palette = {
     "violet":     color(110, 14, 255),
     "green":      color(95, 255, 154),
@@ -50,18 +52,22 @@ function setup() {
 }
 
 function draw() {
-  // console.log(data[frameCount % data.length]);
+  currentDataPoint = data[floor(frameCount/5) % data.length];
+  console.log(currentDataPoint);
   background(0);
-  codeBg();
+  if (skeleton) {
+    codeBg();
+  }
   if (lastImage) {
     if (!skeleton) {
-      image(lastImage, -2, -2, width+4, height+4);
+      var grow = 3;
+      image(lastImage, -grow, -grow, width + grow * 2, height + grow * 2);
     }
   }
   pgEffects.clear();
   var tint = getBgTint();
   var bgc = changeBrightness(tint, 70);
-  fill(red(bgc), green(bgc), blue(bgc), 6);
+  fill(red(bgc), green(bgc), blue(bgc), 5);
   noStroke();
   rect(0,0, width,height);
   auroraSystem.run();
@@ -69,8 +75,34 @@ function draw() {
     lastImage = get();
   }
   image(pgEffects, 0, 0);
-  if (lastImage) {
-    showParams();
+  // if (lastImage) {
+  //   showParams();
+  // }
+}
+
+// --------------------------------------------------------------
+// Background & data
+// --------------------------------------------------------------
+
+function codeBg () {
+  fill(255);
+  noStroke();
+  textFont("Menlo");
+
+  // var times = noise(frameCount * 0.01) * 1000;
+  var times = Easy.easeInQuad(currentDataPoint["TA11415"] / dataStats["TA11415"].max) * 1000;
+
+  for (let i = 0; i < times; i++) {
+    const size = floor(random() * 10) + 12;
+    const x = random() * width;
+    const y = random() * height;
+    const opacity = random() * 255;
+    const str = JSON.stringify(currentDataPoint);
+    const maxLength = 4;
+    const start = floor(random() * (str.length - maxLength));
+    const end = start + floor(random() * maxLength);
+    textSize(size);
+    text(str.substring(start, end), x, y, width);
   }
 }
 
@@ -108,7 +140,7 @@ function codeChars (length, fullNorm) {
   return result;
 }
 
-function codeBg () {
+function codeBgOld () {
   textSize(15);
   textLeading(40);
   textFont("Menlo");
@@ -116,6 +148,48 @@ function codeBg () {
   text(codeChars(5000), 0, 10, width);
 }
 
+
+// --------------------------------------------------------------
+// Data
+// --------------------------------------------------------------
+
+function getStats (data) {
+  var stats = {};
+  data.forEach(d => {
+    Object.keys(d).forEach(k => {
+      if (!stats.hasOwnProperty(k)) {
+        stats[k] = {"min": 99999999999, "max": -99999999999};
+      }
+      if (d[k] < stats[k].min) {
+        stats[k].min = d[k];
+      }
+      if (d[k] > stats[k].max) {
+        stats[k].max = d[k];
+      }
+    });
+  });
+  return stats;
+}
+
+function getDataDesc (key) {
+  var texts = {
+    "TA114422": "Corso Firenze - Genova; Tipo zona: Urbana; Tipo postazione: Fondo;Biossido Azoto - monocanale continuo, convertitore catalittico   chemiluminescenza (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114431": "Corso Firenze - Genova; Tipo zona: Urbana; Tipo postazione: Fondo;Biossido Di Zolfo - continuo, fluorescenza (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114440": "Corso Firenze - Genova; Tipo zona: Urbana; Tipo postazione: Fondo;Monossido Carbonio - continuo, fotometrico ir (mg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114450": "Corso Firenze - Genova; Tipo zona: Urbana; Tipo postazione: Fondo;Pm10 - camp. continuo, raggi beta (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114458": "Corso Firenze - Genova; Tipo zona: Urbana; Tipo postazione: Fondo;Pm2,5 - camp. continuo, raggi beta (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114620": "Multedo - Pegli - Genova; Tipo zona: Urbana; Tipo postazione: Industria;Biossido Azoto - monocanale continuo, convertitore catalittico   chemiluminescenza (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114630": "Multedo - Pegli - Genova; Tipo zona: Urbana; Tipo postazione: Industria;Pm10 - camp. continuo, raggi beta (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114639": "Multedo Villa Chiesa - Genova; Tipo zona: Urbana; Tipo postazione: Industria;Benzene - gc/pid (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114652": "Multedo Villa Chiesa - Genova; Tipo zona: Urbana; Tipo postazione: Industria;Biossido Di Zolfo - continuo, fluorescenza (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA11415": "Corso Europa - Via S. Martino - Genova; Tipo zona: Urbana; Tipo postazione: Traffico;Benzene - gc/pid (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114224": "Corso Europa - Via S. Martino - Genova; Tipo zona: Urbana; Tipo postazione: Traffico;Biossido Azoto - monocanale continuo, convertitore catalittico   chemiluminescenza (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114240": "Corso Europa - Via S. Martino - Genova; Tipo zona: Urbana; Tipo postazione: Traffico;Monossido Carbonio - continuo, fotometrico ir (mg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114250": "Corso Europa - Via S. Martino - Genova; Tipo zona: Urbana; Tipo postazione: Traffico;Pm10 - camp. continuo, raggi beta (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+    "TA114431": "Corso Europa - Via S. Martino - Genova; Tipo zona: Urbana; Tipo postazione: Traffico;Pm2,5 - camp. continuo, raggi beta (microg/m3);dati dal 01/01/2022 al 31/12/2022",
+  };
+  return texts[key];
+}
 
 // --------------------------------------------------------------
 // Class AuroraLine
@@ -162,11 +236,12 @@ function AuroraLine (y) {
     }
     
     // Randomly up or down
-    this.y += (noise(this.randomOffset + this.life * this.coarse) - 0.5) * 5;
+    this.yDelta = (noise(this.randomOffset + this.life * this.coarse) - 0.5) * 5;
 
     // Fixed direction
-    // this.y -= noise(this.randomOffset + this.life * this.coarse) * 0.5 + 1;
+    // this.yDelta = -noise(this.randomOffset + this.life * this.coarse) * 0.5 + 1;
 
+    this.y += this.yDelta;
     if ((this.y < 0 || this.y > height) && this.dyeAt === null) {
       this.kill();
     }
@@ -195,6 +270,9 @@ function AuroraLine (y) {
 
     colorMode(RGB, 255);
     var dcolor = color(this.color, this.intensity * this.normOpacity * 255);
+    if (skeleton) {
+      dcolor = color(255, 15);
+    }
     var dweight = this.intensity * 3;
 
     stroke(dcolor);
@@ -232,9 +310,10 @@ function AuroraLine (y) {
               pos.x += (random() - 0.5) * eff.options.displace * pow(effIntensity, 28);
               pos.y += (random() - 0.5) * eff.options.displace * pow(effIntensity, 28);
             }
-            pgEffects.rect(pos.x, pos.y, 1,1);
+            pgEffects.rect(pos.x, pos.y, 1.5,1.5);
             if (random() < 0.01) {
-              pgEffects.rect(pos.x, pos.y, 1,5);
+              // pgEffects.rect(pos.x, pos.y, 1,15);
+              pgEffects.rect(pos.x, pos.y, 1.5, constrain(-this.yDelta * 30, -8, 8));
             }
           }
         }
@@ -320,7 +399,7 @@ function keyPressed () {
     skeleton = true;
   }
   if (keyCode === UP_ARROW) { 
-    auroraSystem.addLine(height * 0.8); 
+    auroraSystem.addLine(random() * height * 0.5 + height * 0.25); 
   }
   if (keyCode === DOWN_ARROW) { 
     auroraSystem.killOldestLine();
