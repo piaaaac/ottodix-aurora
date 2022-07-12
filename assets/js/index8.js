@@ -1,3 +1,23 @@
+// P5 — Feedback
+// https://editor.p5js.org/allison.parrish/sketches/SkyDuiiWx
+
+// P5 — Audio spectrum analysis from mic
+// https://p5js.org/examples/sound-frequency-spectrum.html
+
+// P5 — Glitch example
+// https://editor.p5js.org/jeremydouglass/sketches/L13wuQ2hg
+
+// 1680 x 1050 (real 3360 x 2100) macbook display with highest resolution
+// 1680 x 945  (real 3360 x 1890) is 16/9 ratio
+
+
+// Keyboard
+// ↑ add line
+// ↓ remove line
+// ← or 'g' 'glitch2' effect
+// → 'skeleton' effect (code vacum)
+// 'r' reset background faster
+// 'f' or noise (uses mic) 'brilla' effect
 
 
 // --------------------------------------------------------------
@@ -10,10 +30,13 @@ let palette;
 let pgEffects;
 let lastImage;
 let raw, data, currentDataPoint, dataStats;
+let mic, fft, audioStats;
 let skeleton = false;
+let glitch2 = false;
+let reset = false;
 let params = {
   "click left/right": "add/remove lines",
-  "linesNum": 2,
+  "linesNum": 0,
   // "effects": [],
   "frameRate": 0,
 };
@@ -40,44 +63,72 @@ function setup() {
     "chillgreen": color(60, 228, 152),
     "pink":       color(247, 105, 247),    
   };
+  
   var cont = document.getElementById("p5-canvas-container");
   canvas = createCanvas(cont.clientWidth, cont.clientHeight);
   canvas.parent(cont);
+  frameRate(30);
+
   auroraSystem = new AuroraSystem();
   for (var i = 0; i < params.linesNum; i++) {
     auroraSystem.addRandomLine();
   }
   pgEffects = createGraphics(width, height);
   // console.log(data);
+
+  // p5_sound
+  mic = new p5.AudioIn();
+  mic.start();
+  fft = new p5.FFT();
+  fft.setInput(mic);
+  audioStats = new AudioStats(fft);
 }
 
 function draw() {
+
+  audioStats.update();
+  if (audioStats.detect("treble", 1.1)) {
+    console.log("DETECTED");
+    if (auroraSystem.lines.length > 0) {
+      random(auroraSystem.lines).addEffect("brilla", 1, {"displace": 25, "fadeLine": true}); 
+    }
+  }
+
   currentDataPoint = data[floor(frameCount/5) % data.length];
-  console.log(currentDataPoint);
   background(0);
   if (skeleton) {
     codeBg();
   }
   if (lastImage) {
     if (!skeleton) {
-      var grow = 3;
+      var grow = reset ? 5 : 3;
       image(lastImage, -grow, -grow, width + grow * 2, height + grow * 2);
     }
   }
   pgEffects.clear();
   var tint = getBgTint();
-  var bgc = changeBrightness(tint, 70);
-  fill(red(bgc), green(bgc), blue(bgc), 5);
+  
+  // V1
+  // var bgc = changeBrightness(tint, 70);
+  // fill(red(bgc), green(bgc), blue(bgc), 5);
+  
+  // V2
+  var op = reset ? 15 : 4;
+  var lg = reset ? 110 : 50;
+  var bgc = changeBrightness(tint, lg);
+  fill(red(bgc), green(bgc), blue(bgc), op);
+
   noStroke();
   rect(0,0, width,height);
   auroraSystem.run();
   if (!skeleton) {
     lastImage = get();
   }
+  if (glitch2) {
+    image(glitchEffect2(lastImage), 0,0);
+  }
   image(pgEffects, 0, 0);
-  // if (lastImage) {
-  //   showParams();
-  // }
+  // if (lastImage) { showParams(); }
 }
 
 // --------------------------------------------------------------
@@ -113,40 +164,49 @@ function getBgTint() {
   return interpolateNColors(bgColors, amt);
 }
 
-function codeChars (length, fullNorm) {
-  var characters = "ffd8ffe000104a46494600010101025802580000ffe102a04578696600004d4d002a000000080001010e00020000027e0000001a0000000054686ff5";
-  var result = "";
-  var l = characters.length;
-  while (result.length < length) {
-    result += characters.charAt(Math.floor(Math.random() * l));
-    var fullNorm = random();
-    var strength;
-    if (fullNorm < 0.33) { strength = "level1"; }
-    else if (fullNorm < 0.66) { strength = "level2"; }
-    else { strength = "level3"; }
-    var params = {
-      "level1": {"spaceProb": 0.9999},
-      "level2": {"spaceProb": 0.99},
-      "level3": {"spaceProb": 0.7},
-    }
-    if (random() < params[strength].spaceProb) {
-      result += "                                                                                                    ".substring(0, floor(random() * 100));
-      if (strength === "level1") {
-        result += "                                                                                                    ".substring(0, floor(random() * 100));
-        result += "                                                                                                    ".substring(0, floor(random() * 100));
-      }
-    }
+function glitchEffect2 (image) {
+  image.loadPixels();
+  let pxls = new Uint8Array(image.pixels);
+  image.updatePixels();
+  let start = floor(random(0, pxls.length * 0.8));
+  let length = floor(random(0, pxls.length - start));
+  let section = pxls.slice(start, start + length);
+  section.reverse();
+  pxls.set(section, start);
+  let newImage = createImage(image.width, image.height);
+  newImage.loadPixels();
+  newImage.pixels.set(pxls, 0);
+  newImage.updatePixels();
+  if (random() < 0.1) {
+    newImage.filter(THRESHOLD, 0.8); // BELLO
+  } else {
+    newImage.filter(POSTERIZE, 20);
+    newImage.filter(THRESHOLD, 0.5);
   }
-  return result;
+  return newImage;
 }
 
-function codeBgOld () {
-  textSize(15);
-  textLeading(40);
-  textFont("Menlo");
-  textWrap(CHAR);
-  text(codeChars(5000), 0, 10, width);
-}
+// function glitchEffect (image) {
+//   var glitchlen = int(random(4,2400))*4;
+//   let channelshift = int(random(0,4));
+//   image.loadPixels();
+//   // let start = random(0, image.pixels.length);
+//   let start = image.pixels.length * 0.5
+//   for(let i = start; i < image.pixels.length - glitchlen; i = i + glitchlen) {
+//     for(let p = channelshift; p < glitchlen; p += 4){
+//       image.pixels[i+p] = image.pixels[i];
+//       image.pixels[i+p+1] = image.pixels[i+1];
+//       image.pixels[i+p+2] = image.pixels[i+2];
+//       //image.pixels[i+p+3] = image.pixels[i+3];
+//     }
+//   }
+//   image.updatePixels();
+//   return image;
+// }
+
+// --------------------------------------------------------------
+// Audio
+// --------------------------------------------------------------
 
 
 // --------------------------------------------------------------
@@ -189,6 +249,67 @@ function getDataDesc (key) {
     "TA114431": "Corso Europa - Via S. Martino - Genova; Tipo zona: Urbana; Tipo postazione: Traffico;Pm2,5 - camp. continuo, raggi beta (microg/m3);dati dal 01/01/2022 al 31/12/2022",
   };
   return texts[key];
+}
+
+// --------------------------------------------------------------
+// Class AudioStats
+// --------------------------------------------------------------
+
+function AudioStats (fft) {
+  this.fft = fft;
+  this.i = 0;
+  this.past = [];
+  this.pastItemsNum = 3;
+  this.lastDetected = {};
+
+  this.update = function () {
+    let spectrum = this.fft.analyze();
+    let item = {
+      "bass":     floor(fft.getEnergy("bass")),
+      "lowMid":   floor(fft.getEnergy("lowMid")),
+      "mid":      floor(fft.getEnergy("mid")),
+      "highMid":  floor(fft.getEnergy("highMid")),
+      "treble":   floor(fft.getEnergy("treble")),
+    };
+    this.past.unshift(item);
+    if (this.past.length > this.pastItemsNum) {
+      this.past.pop();
+    }
+    this.i++;
+  }
+
+  this.ready = function () {
+    return this.past.length >= this.pastItemsNum;
+  }
+
+  /**
+   * looks if there has been an increase in energy compared to the stored past stats
+   * @param freqRange — string "bass|lowMid|mid|highMid|treble"
+   * @param increaseFactor — number
+   * */
+  this.detect = function (freqRange, increaseFactor = 1.5) {
+    if (!this.ready()) { return false; }
+    if (this.lastDetected.hasOwnProperty(freqRange) && this.lastDetected[freqRange] > this.i - this.pastItemsNum) { 
+      return false; 
+    }
+    let detected = false;
+    const now = this.past[0];
+    const that = this;
+    this.past.forEach((item, i) => {
+      if (i === 0) { return; }
+      if (now[freqRange] > item[freqRange] * increaseFactor) {
+        detected = true;
+        that.lastDetected[freqRange] = that.i;
+      }
+    });
+    return detected;
+  }
+
+  // function updateAudioStats (spectrum) {
+  //   const sum = spectrum.reduce((partialSum, a) => partialSum + a, 0);
+  //   return sum;
+  // }
+
 }
 
 // --------------------------------------------------------------
@@ -271,9 +392,10 @@ function AuroraLine (y) {
     colorMode(RGB, 255);
     var dcolor = color(this.color, this.intensity * this.normOpacity * 255);
     if (skeleton) {
-      dcolor = color(255, 15);
+      dcolor = color(255, 10);
     }
-    var dweight = this.intensity * 3;
+    // var dweight = this.intensity * 3;
+    var dweight = this.intensity * 4;
 
     stroke(dcolor);
     strokeWeight(dweight);
@@ -391,12 +513,9 @@ function mousePressed () {
 }
 
 function keyPressed () {
-  // console.log(keyCode);
+  console.log(keyCode);
   if (keyCode === LEFT_ARROW) { 
-    random(auroraSystem.lines).addEffect("brilla", 1, {"displace": 25, "fadeLine": true}); 
-  }
-  if (keyCode === RIGHT_ARROW) { 
-    skeleton = true;
+    glitch2 = true;
   }
   if (keyCode === UP_ARROW) { 
     auroraSystem.addLine(random() * height * 0.5 + height * 0.25); 
@@ -404,13 +523,21 @@ function keyPressed () {
   if (keyCode === DOWN_ARROW) { 
     auroraSystem.killOldestLine();
   }
+  
+  if (keyCode === RIGHT_ARROW) { skeleton = true; }
+  if (keyCode === 70  /* f */) { 
+    random(auroraSystem.lines).addEffect("brilla", 1, {"displace": 25, "fadeLine": true}); 
+  }
+  if (keyCode === 71  /* g */) { glitch2 = true; }
+  if (keyCode === 82  /* r */) { reset = true; }
 }
 
 function keyReleased () {
   // console.log(keyCode);
-  if (keyCode === RIGHT_ARROW) { 
-    skeleton = false;
-  }
+  if (keyCode === LEFT_ARROW) { glitch2 = false; }
+  if (keyCode === RIGHT_ARROW) { skeleton = false; }
+  if (keyCode === 71  /* g */) { glitch2 = false; }
+  if (keyCode === 82  /* r */) { reset = false; }
 }
 
 /**
