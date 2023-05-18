@@ -327,8 +327,8 @@ function AuroraLine (y) {
   this.intensity = 0;
   this.verticalIncrement = random() * 0.3 + 0.2;
   this.effects = [];
-  this.color = palette.green;
-  // this.color = palette.violet;
+  // this.color = palette.green;
+  this.color = palette.violet;
 
   this.addEffect = function (name, duration, options) {
     var effect = {
@@ -390,12 +390,13 @@ function AuroraLine (y) {
     });
 
     colorMode(RGB, 255);
-    var dcolor = color(this.color, this.intensity * this.normOpacity * 255);
+    var dcolor = color(red(this.color), green(this.color), blue(this.color), this.intensity * 255);
+    console.log(this.intensity)
     if (skeleton) {
       dcolor = color(255, 10);
     }
-    // var dweight = this.intensity * 3;
-    var dweight = this.intensity * 4;
+    // var dweight = this.intensity * 4;
+    var dweight = 4;
 
     stroke(dcolor);
     strokeWeight(dweight);
@@ -411,9 +412,13 @@ function AuroraLine (y) {
     xstart /= 2;
     xend = xend/2 + 0.5;
 
+    // outside screen left & right
+    xstart -= 1;
+    xend += 1;
+
     beginShape();
     for (x = width * xstart; x < width * xend; x++) {
-      var pos = this.getXPoint(x);
+      var pos = this.getPoint(x);
       vertex(pos.x, pos.y);
     }
     endShape();
@@ -427,7 +432,7 @@ function AuroraLine (y) {
         var prob = effIntensity * 0.7;
         for (x = width * xstart; x < width * xend; x++) {
           if (random() < prob) {
-            var pos = this.getXPoint(x);
+            var pos = this.getPoint(x);
             if (eff.options && eff.options.displace) {
               pos.x += (random() - 0.5) * eff.options.displace * pow(effIntensity, 28);
               pos.y += (random() - 0.5) * eff.options.displace * pow(effIntensity, 28);
@@ -443,7 +448,7 @@ function AuroraLine (y) {
     });
   }
 
-  this.getXPoint = function (x) {
+  this.getPoint = function (x) {
     var noiseX = noise(this.randomOffset, x * this.coarse, this.life);
     var noiseY = noise(this.randomOffset + 1000, this.life, x * this.coarse + this.randomOffset);
     var incX = (noiseX - 0.5) * width * 0.7;
